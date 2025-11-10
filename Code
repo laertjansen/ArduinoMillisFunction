@@ -1,0 +1,95 @@
+// Practice code using millis()
+// LED1 flashes every second, LED2 flashes every 2 seconds
+// Motors spin for 5 seconds when PIR detects motion
+
+const int LED1 = 7;
+const int LED2 = 8;
+
+// LED 1 variables
+unsigned long previousTimeLED1Blinked = 0;
+unsigned long LED1BlinkDelay = 1000;
+int LED1State = LOW;
+
+// LED 2 variables
+unsigned long previousTimeLED2Blinked = 0;
+unsigned long LED2BlinkDelay = 2000;
+int LED2State = LOW;
+
+// PIR variables
+const int pirPin = 3;
+int motionStatus = 0;
+int pirState = LOW;
+
+// Motor variables
+#define pinForwardsMotorA 5
+#define pinBackwardsMotorA 6
+
+#define pinForwardsMotorB 9
+#define pinBackwardsMotorB 10
+
+#define speed 190
+#define speed2 140
+
+// Motor timing
+unsigned long motorRunUntil = 0;
+bool motorsRunning = false;
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(LED1, OUTPUT);
+  pinMode(LED2, OUTPUT);
+  pinMode(pirPin, INPUT);
+
+  pinMode(pinForwardsMotorA, OUTPUT);
+  pinMode(pinBackwardsMotorA, OUTPUT);
+  pinMode(pinForwardsMotorB, OUTPUT);
+  pinMode(pinBackwardsMotorB, OUTPUT);
+}
+
+void loop() {
+  unsigned long timeNow = millis();
+  motionStatus = digitalRead(pirPin);
+
+  // LED1 Blinking
+  if (timeNow - previousTimeLED1Blinked >= LED1BlinkDelay) {
+    previousTimeLED1Blinked += LED1BlinkDelay;
+    LED1State = !LED1State;
+    digitalWrite(LED1, LED1State);
+  }
+
+  // LED2 Blinking
+  if (timeNow - previousTimeLED2Blinked >= LED2BlinkDelay) {
+    previousTimeLED2Blinked += LED2BlinkDelay;
+    LED2State = !LED2State;
+    digitalWrite(LED2, LED2State);
+  }
+
+  // PIR Detection
+  if (motionStatus == HIGH && pirState == LOW) {
+    Serial.println("Motion detected!");
+    pirState = HIGH;
+
+    // Start motors
+    analogWrite(pinForwardsMotorA, speed);
+    analogWrite(pinBackwardsMotorA, LOW);
+    analogWrite(pinForwardsMotorB, speed2);
+    analogWrite(pinBackwardsMotorB, LOW);
+
+    motorsRunning = true;
+    motorRunUntil = timeNow + 5000;
+    
+  } else if (motionStatus == LOW && pirState == HIGH) {
+    Serial.println("Motion ended.");
+    pirState = LOW;
+  }
+
+  if (motorsRunning && timeNow >= motorRunUntil) {
+    analogWrite(pinForwardsMotorA, LOW);
+    analogWrite(pinBackwardsMotorA, LOW);
+    analogWrite(pinForwardsMotorB, LOW);
+    analogWrite(pinBackwardsMotorB, LOW);
+    motorsRunning = false;
+    Serial.println("Motors stopped after 5 seconds.");
+  }
+}
